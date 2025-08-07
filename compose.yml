@@ -1,0 +1,128 @@
+services:
+  # FTP service (multi-utilisateur)
+  ftp:
+    image: fauria/vsftpd:latest
+    ports:
+      - "21:21"
+      - "21000-21010:21000-21010"
+    environment:
+      - FTP_USER_1=user1_jeff
+      - FTP_PASS_1=/run/secrets/ftp_pass_1
+      - FTP_USER_2=user2_psd
+      - FTP_PASS_2_FILE=/run/secrets/ftp_pass_2
+      - PASV_ADDRESS=91.99.144.131
+      - PASV_MIN_PORT=21000
+      - PASV_MAX_PORT=21010
+      - LOG_STDOUT=Yes
+
+    # Secrets for sensitive data
+    secrets:
+      - ftp_pass_1
+      - ftp_pass_2
+    volumes:
+      - ./ftpdata:/home/vsftpd
+    restart: unless-stopped
+
+  # PostgreSQL database service
+  # Ensure to set the environment variables in the secrets directory
+  # The secrets should be created in the ./secrets directory
+  # with the respective filenames as specified below
+  # PostgreSQL service
+  # Used for storing Directus data
+  # Ensure to set the environment variables in the secrets directory
+  # The secrets should be created in the ./secrets directory
+  # with the respective filenames as specified below
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: directus_psd
+      POSTGRES_USER: directus_psd
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_password
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    secrets:
+      - database_password
+    restart: unless-stopped
+  # Redis cache service
+  # Used for caching in Directus
+  # Ensure to set the environment variables in the secrets directory
+  # The secrets should be created in the ./secrets directory
+  # with the respective filenames as specified below
+  cache:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Directus service
+  # Ensure to set the environment variables in the secrets directory
+  # The secrets should be created in the ./secrets directory
+  # with the respective filenames as specified below
+  directus:
+    image: directus/directus:11.10
+    environment:
+      SECRET_FILE: /run/secrets/directus_secret
+      ADMIN_PASSWORD_FILE: /run/secrets/directus_admin_password
+      ADMIN_EMAIL_FILE: /run/secrets/directus_admin_mail
+      DB_CLIENT: pg
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: directus_psd
+      DB_USER: directus_psd
+      DB_PASSWORD_FILE: /run/secrets/database_password
+      CACHE_ENABLED: 'true'
+      CACHE_STORE: redis
+      REDIS: redis://cache:6379
+      LOG_LEVEL: 'error'
+    ports:
+      - "8055:8055"
+    depends_on:
+      - db
+      - cache
+    secrets:
+      - directus_secret
+      - directus_admin_password
+      - database_password
+      - directus_admin_mail
+    restart: unless-stopped
+
+  # Caddy reverse proxy
+  caddy:
+    image: caddy:2.10
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - directus
+    restart: unless-stopped
+
+# Volumes for persistent data
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:
+  redis_data:
+
+    # Secrets for sensitive data
+    # Ensure to create these files in the ./secrets directory
+    # The secrets should be created in the ./secrets directory
+    # with the respective filenames as specified below
+secrets:
+  database_password:
+    file: ./secrets/database_password.txt
+  directus_secret:
+    file: ./secrets/directus_secret.txt
+  directus_admin_password:
+    file: ./secrets/directus_admin_password.txt
+  directus_admin_mail:
+    file: ./secrets/directus_admin_mail.txt
+  ftp_pass_1:
+    file: ./secrets/ftp_pass_1.txt
+  ftp_pass_2:
+    file: ./secrets/ftp_pass_2.txt

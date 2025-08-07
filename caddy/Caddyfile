@@ -1,0 +1,4 @@
+localhost, db.unpingouinsurladune.fr, 91.99.144.131 {
+    reverse_proxy http://directus:8055
+}
+
