@@ -37,6 +37,7 @@ services:
       CACHE_STORE: redis
       REDIS: redis://cache:6379
       LOG_LEVEL: 'error'
+      CACHE_TTL: 10
     ports:
       - "8055:8055"
     depends_on:

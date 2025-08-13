@@ -14,3 +14,4 @@ redis_data/
 .DS_Store
 ftpdata/
 secrets/*.txt.dist
+Caddyfile.dist
