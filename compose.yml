@@ -1,37 +1,5 @@
 services:
-  # FTP service (multi-utilisateur)
-  ftp:
-    image: fauria/vsftpd:latest
-    ports:
-      - "21:21"
-      - "21000-21010:21000-21010"
-    environment:
-      - FTP_USER_1=user1_jeff
-      - FTP_PASS_1=/run/secrets/ftp_pass_1
-      - FTP_USER_2=user2_psd
-      - FTP_PASS_2_FILE=/run/secrets/ftp_pass_2
-      - PASV_ADDRESS=91.99.144.131
-      - PASV_MIN_PORT=21000
-      - PASV_MAX_PORT=21010
-      - LOG_STDOUT=Yes
 
-    # Secrets for sensitive data
-    secrets:
-      - ftp_pass_1
-      - ftp_pass_2
-    volumes:
-      - ./ftpdata:/home/vsftpd
-    restart: unless-stopped
-
-  # PostgreSQL database service
-  # Ensure to set the environment variables in the secrets directory
-  # The secrets should be created in the ./secrets directory
-  # with the respective filenames as specified below
-  # PostgreSQL service
-  # Used for storing Directus data
-  # Ensure to set the environment variables in the secrets directory
-  # The secrets should be created in the ./secrets directory
-  # with the respective filenames as specified below
   db:
     image: postgres:15
     environment:
@@ -43,11 +11,7 @@ services:
     secrets:
       - database_password
     restart: unless-stopped
-  # Redis cache service
-  # Used for caching in Directus
-  # Ensure to set the environment variables in the secrets directory
-  # The secrets should be created in the ./secrets directory
-  # with the respective filenames as specified below
+
   cache:
     image: redis:7
     ports:
@@ -56,16 +20,13 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-  # Directus service
-  # Ensure to set the environment variables in the secrets directory
-  # The secrets should be created in the ./secrets directory
-  # with the respective filenames as specified below
   directus:
     image: directus/directus:11.10
     environment:
       SECRET_FILE: /run/secrets/directus_secret
       ADMIN_PASSWORD_FILE: /run/secrets/directus_admin_password
       ADMIN_EMAIL_FILE: /run/secrets/directus_admin_mail
+      PUBLIC_URL: 'https://db.unpingouinsurladune.fr'
       DB_CLIENT: pg
       DB_HOST: db
       DB_PORT: 5432
@@ -88,7 +49,6 @@ services:
       - directus_admin_mail
     restart: unless-stopped
 
-  # Caddy reverse proxy
   caddy:
     image: caddy:2.10
     ports:
@@ -102,17 +62,13 @@ services:
       - directus
     restart: unless-stopped
 
-# Volumes for persistent data
 volumes:
   db_data:
   caddy_data:
   caddy_config:
   redis_data:
 
-    # Secrets for sensitive data
-    # Ensure to create these files in the ./secrets directory
-    # The secrets should be created in the ./secrets directory
-    # with the respective filenames as specified below
+
 secrets:
   database_password:
     file: ./secrets/database_password.txt
@@ -122,7 +78,3 @@ secrets:
     file: ./secrets/directus_admin_password.txt
   directus_admin_mail:
     file: ./secrets/directus_admin_mail.txt
-  ftp_pass_1:
-    file: ./secrets/ftp_pass_1.txt
-  ftp_pass_2:
-    file: ./secrets/ftp_pass_2.txt
